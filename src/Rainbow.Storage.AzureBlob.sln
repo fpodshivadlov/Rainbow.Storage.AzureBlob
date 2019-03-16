@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rainbow.Storage.AzureBlob", "Rainbow.Storage.AzureBlob\Rainbow.Storage.AzureBlob.csproj", "{91D9ED4C-81F2-4034-BA11-DBAE7B80000C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rainbow.Storage.AzureBlob.Tests", "Rainbow.Storage.AzureBlob.Tests\Rainbow.Storage.AzureBlob.Tests.csproj", "{8D4E337E-DA8E-4FDA-8F39-4B986239A5ED}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{91D9ED4C-81F2-4034-BA11-DBAE7B80000C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91D9ED4C-81F2-4034-BA11-DBAE7B80000C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91D9ED4C-81F2-4034-BA11-DBAE7B80000C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91D9ED4C-81F2-4034-BA11-DBAE7B80000C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D4E337E-DA8E-4FDA-8F39-4B986239A5ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D4E337E-DA8E-4FDA-8F39-4B986239A5ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D4E337E-DA8E-4FDA-8F39-4B986239A5ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D4E337E-DA8E-4FDA-8F39-4B986239A5ED}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

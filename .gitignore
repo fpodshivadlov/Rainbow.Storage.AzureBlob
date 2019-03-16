@@ -328,3 +328,8 @@ ASALocalRun/
 
 # MFractors (Xamarin productivity tool) working folder 
 .mfractor/
+
+# Custom 
+/src/Rainbow.*.Tests/connectionString.txt
+/scripts/NugetApiKey.txt
+/tools/NuGet.exe

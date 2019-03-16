@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package>
+    <metadata>
+        <id>Rainbow.Storage.AzureBlob</id>
+        <version>$version$</version>
+        <authors>Fyodor Podshivadlov</authors>
+        <owners>Fyodor Podshivadlov</owners>
+        <projectUrl>https://github.com/genusq/Rainbow.Storage.AzureBlob</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>An Azure Blob Storage data store extension library for Rainbow, Sitecore serialization library.</description>
+        <tags>sitecore serialization azure blob storage</tags>
+        <license type="expression">MIT</license>
+        <dependencies>
+            <dependency id="Rainbow" version="2.0.0" />
+        </dependencies>
+    </metadata>
+</package>
