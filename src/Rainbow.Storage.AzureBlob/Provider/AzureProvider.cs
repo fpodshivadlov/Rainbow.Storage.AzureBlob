@@ -66,8 +66,6 @@ namespace Rainbow.Storage.AzureBlob.Provider
                             }
                         }
                     }
-                    
-                    Console.WriteLine(item.Uri);
                 }
             }
             while (blobContinuationToken != null);
@@ -83,12 +81,30 @@ namespace Rainbow.Storage.AzureBlob.Provider
 
         public bool DirectoryExists(string directoryPath)
         {
-            var prefix = AzureUtils.DirectoryPathToPrefix(directoryPath);
+            string prefix = AzureUtils.DirectoryPathToPrefix(directoryPath);
+            CloudBlobDirectory blobDirectory = this.cloudBlobContainer.GetDirectoryReference(prefix);
             
-            var blobDirectory = this.cloudBlobContainer.GetDirectoryReference(prefix);
-            bool directoryExists = blobDirectory.ListBlobs().Any();
+            BlobContinuationToken blobContinuationToken = null;
+            do
+            {
+                BlobResultSegment results = blobDirectory.ListBlobsSegmented(
+                    true,
+                    BlobListingDetails.None,
+                    4,
+                    blobContinuationToken,
+                    null, 
+                    null
+                );
+                
+                blobContinuationToken = results.ContinuationToken;
+                if (results.Results.OfType<CloudBlockBlob>().Any())
+                {
+                    return true;
+                }
+            }
+            while (blobContinuationToken != null);
 
-            return directoryExists;
+            return false;
         }
 
         public Stream GetFileStream(string filePath, bool openRead = true)
