@@ -66,6 +66,12 @@ namespace Rainbow.Storage.AzureBlob.Tests
         {
             Assert.True(this.azureProvider.DirectoryExists("/Testing/media/Imported/"));
             Assert.False(this.azureProvider.DirectoryExists("/Testing/media/NotImported/"));
+            
+            Assert.True(this.azureProvider.DirectoryExists("/Testing/media/"));
+            Assert.True(this.azureProvider.DirectoryExists("/Testing"));
+            Assert.False(this.azureProvider.DirectoryExists("/NotTesting"));
+            
+            Assert.True(this.azureProvider.DirectoryExists("/"));
         }
     }
 }

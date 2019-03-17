@@ -11,13 +11,13 @@ namespace Rainbow.Storage.AzureBlob
 {
 	public class SerializationBlobStorageDataStore : ISnapshotCapableDataStore, IDocumentable, IDisposable
 	{
-		protected readonly string CloudRootPath;
+		private readonly string CloudRootPath;
 		private readonly bool _useDataCache;
 		private readonly ITreeRootFactory _rootFactory;
-		protected readonly IList<SerializationBlobStorageTree> Trees;
+		private readonly IList<SerializationBlobStorageTree> Trees;
 		private readonly ISerializationFormatter _formatter;
 		private readonly AzureProvider _azureProvider;
-		private string _containerName;
+		private readonly string _containerName;
 
 		public SerializationBlobStorageDataStore(
 			string cloudRootPath,
@@ -240,6 +240,7 @@ namespace Rainbow.Storage.AzureBlob
 				new KeyValuePair<string, string>("Serialization formatter", DocumentationUtility.GetFriendlyName(this._formatter)),
 				new KeyValuePair<string, string>("Cloud root path", this.CloudRootPath),
 				new KeyValuePair<string, string>("Azure BLOB container name", this._containerName), 
+				new KeyValuePair<string, string>("Use data cache", this._useDataCache.ToString()), 
 				new KeyValuePair<string, string>("Total internal SFS trees", this.Trees.Count.ToString())
 			};
 		}

@@ -1,0 +1,29 @@
+version: 0.1.{build}
+pull_requests:
+  do_not_increment_build_number: true
+image: Visual Studio 2017
+configuration: Release
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}-alpha'
+environment:
+  AZURE_BLOB_CONNECTING_STRING:
+    secure: WeJ3YXH1zCYyLkG1zudl5oso4LP/7SEV/fWUm0Op4M1P+8aK8OJECmN3g3anASwp2glqVnXSYVAEKpefFLr3/ZswrDHMJvZAUhkHSxKebH+kXl6C2Mip4/WI4KoULNrrvzXIwYE+k5ofJwDLeh6tIVOW6TZznsBEP7Yqv5GNgQEGpOkijMlzgUw6qOEOYdtVAdM/pdcJWCQNzNhNlnm+5dGPYR/qgFS3hHHvndxDKNQfd76Llv+3BPBTKOrtDlpN
+
+cache:
+  - packages -> **\packages.config
+before_build:
+- cmd: nuget restore src
+build:
+  project: src/Rainbow.Storage.AzureBlob.sln
+  publish_nuget: true
+  verbosity: minimal
+deploy:
+- provider: NuGet
+  api_key:
+    secure: 38o+l9iDS6vzX91daJap1IgYhIu+f2jXq5LL5ooc2qxESpOgFU0rjHmlB1KvsaaH
+  on:
+    branch: master
