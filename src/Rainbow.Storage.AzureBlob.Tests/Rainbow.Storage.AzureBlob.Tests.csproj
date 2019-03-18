@@ -97,12 +97,12 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="DataStore\SerializationBlobStorageDataStoreTests.cs" />
         <Compile Include="Fakes\FakeTreeRootFactory.cs" />
+        <Compile Include="Helpers\ConfigHelpers.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="Provider\AzureProviderTests.cs" />
-        <Compile Include="Provider\AzureUtilsTests.cs" />
-        <Compile Include="SerializationBlobStorageDataStoreTests.cs" />
-        <Compile Include="Utils\Helpers.cs" />
+        <Compile Include="Manager\AzureManagerTests.cs" />
+        <Compile Include="Utils\AzureUtilsTests.cs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\Rainbow.Storage.AzureBlob\Rainbow.Storage.AzureBlob.csproj">

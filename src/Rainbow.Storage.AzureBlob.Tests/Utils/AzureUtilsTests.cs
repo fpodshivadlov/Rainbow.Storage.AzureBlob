@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using Rainbow.Storage.AzureBlob.Provider;
-using Rainbow.Storage.AzureBlob.Tests.Utils;
+﻿using Rainbow.Storage.AzureBlob.Utils;
 using Xunit;
 
-namespace Rainbow.Storage.AzureBlob.Tests
+namespace Rainbow.Storage.AzureBlob.Tests.Utils
 {
     public class AzureUtilsTests
     {       

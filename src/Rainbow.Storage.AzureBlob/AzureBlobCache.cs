@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO;
+using Rainbow.Storage.AzureBlob.Manager;
 using Rainbow.Storage.AzureBlob.Provider;
+using Rainbow.Storage.AzureBlob.Utils;
 using Sitecore.Diagnostics;
 
 namespace Rainbow.Storage.AzureBlob
@@ -12,13 +14,13 @@ namespace Rainbow.Storage.AzureBlob
       new ConcurrentDictionary<string, AzureBlobCacheEntry<T>>(StringComparer.OrdinalIgnoreCase);
    
 
-    private readonly AzureProvider azureProvider;
+    private readonly AzureManager azureManager;
     
-    public AzureBlobCache(AzureProvider azureProvider, bool enabled)
+    public AzureBlobCache(AzureManager azureManager, bool enabled)
     {
-      Assert.ArgumentNotNull(azureProvider, nameof(azureProvider));
+      Assert.ArgumentNotNull(azureManager, nameof(azureManager));
       
-      this.azureProvider = azureProvider;
+      this.azureManager = azureManager;
       this.Enabled = enabled;
     }
 
@@ -38,7 +40,7 @@ namespace Rainbow.Storage.AzureBlob
       if (cacheValue != null)
         return cacheValue;
 
-      if (!this.azureProvider.FileExists(filePath))
+      if (!this.azureManager.FileExists(filePath))
         return default (T);
 
       string name = AzureUtils.FilePathToName(filePath);

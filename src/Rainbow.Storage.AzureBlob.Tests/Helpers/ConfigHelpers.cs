@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 
-namespace Rainbow.Storage.AzureBlob.Tests.Utils
+namespace Rainbow.Storage.AzureBlob.Tests.Helpers
 {
-    public static class Helpers
+    public static class ConfigHelpers
     {
         public static string GetConnectionString()
         {

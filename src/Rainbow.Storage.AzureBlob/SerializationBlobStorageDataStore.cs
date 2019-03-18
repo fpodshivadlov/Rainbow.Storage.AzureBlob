@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Rainbow.Formatting;
 using Rainbow.Model;
+using Rainbow.Storage.AzureBlob.Manager;
 using Rainbow.Storage.AzureBlob.Provider;
 using Sitecore.Diagnostics;
 
@@ -16,12 +17,13 @@ namespace Rainbow.Storage.AzureBlob
 		private readonly ITreeRootFactory _rootFactory;
 		private readonly IList<SerializationBlobStorageTree> Trees;
 		private readonly ISerializationFormatter _formatter;
-		private readonly AzureProvider _azureProvider;
+		private readonly AzureManager azureManager;
 		private readonly string _containerName;
 
 		public SerializationBlobStorageDataStore(
 			string cloudRootPath,
 			bool useDataCache,
+			bool useBlobListCache,
 			string connectionString,
 			string containerName,
 			ITreeRootFactory rootFactory,
@@ -31,7 +33,7 @@ namespace Rainbow.Storage.AzureBlob
 			Assert.ArgumentNotNull(formatter, nameof(formatter));
 			Assert.ArgumentNotNull(rootFactory, nameof(rootFactory));
 
-			this._azureProvider = new AzureProvider(connectionString, containerName);
+			this.azureManager = new AzureManager(connectionString, containerName, useBlobListCache);
 			this._containerName = containerName;
 			this._useDataCache = useDataCache;
 			this._rootFactory = rootFactory;
@@ -195,7 +197,7 @@ namespace Rainbow.Storage.AzureBlob
 				Path.Combine(this.CloudRootPath, root.Name),
 				formatter,
 				useDataCache,
-				this._azureProvider);
+				this.azureManager);
 
 			return tree;
 		}
