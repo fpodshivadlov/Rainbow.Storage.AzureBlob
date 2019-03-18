@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Concurrent;
-using System.IO;
-using Rainbow.Storage.AzureBlob.Provider;
+using System.Threading;
+using Rainbow.Storage.AzureBlob.Manager;
+using Rainbow.Storage.AzureBlob.Utils;
+using Sitecore.Collections;
 using Sitecore.Diagnostics;
 
 namespace Rainbow.Storage.AzureBlob
@@ -10,26 +12,26 @@ namespace Rainbow.Storage.AzureBlob
   {
     private readonly ConcurrentDictionary<string, AzureBlobCacheEntry<T>> _cache = 
       new ConcurrentDictionary<string, AzureBlobCacheEntry<T>>(StringComparer.OrdinalIgnoreCase);
-   
+    private ConcurrentSet<string> processingFileNames = new ConcurrentSet<string>();
 
-    private readonly AzureProvider azureProvider;
+    private readonly IAzureManager azureManager;
     
-    public AzureBlobCache(AzureProvider azureProvider, bool enabled)
+    public AzureBlobCache(IAzureManager azureManager, bool enabled)
     {
-      Assert.ArgumentNotNull(azureProvider, nameof(azureProvider));
+      Assert.ArgumentNotNull(azureManager, nameof(azureManager));
       
-      this.azureProvider = azureProvider;
+      this.azureManager = azureManager;
       this.Enabled = enabled;
     }
 
     public bool Enabled { get; set; }
 
-    public void AddOrUpdate(string key, T value)
+    public void AddOrUpdate(string filePath, T value)
     {
       if (!this.Enabled)
         return;
       
-      this.AddOrUpdate(new FileInfo(key), value);
+      this.AddOrUpdateCache(filePath, value);
     }
 
     public T GetValue(string filePath, Func<string, T> populateFunction)
@@ -38,16 +40,27 @@ namespace Rainbow.Storage.AzureBlob
       if (cacheValue != null)
         return cacheValue;
 
-      if (!this.azureProvider.FileExists(filePath))
+      if (!this.azureManager.FileExists(filePath))
         return default (T);
 
       string name = AzureUtils.FilePathToName(filePath);
-      lock (AzureUtils.GetBlobLock(name))
+
+      var mutex = new Mutex(false, $"blob-{name}");
+      try
       {
+        mutex.WaitOne();
+        T cacheValueAgain = this.GetValue(filePath, true);
+        if (cacheValueAgain != null)
+          return cacheValueAgain;
+        
         T calculatedValue = populateFunction(name);
-        this.AddOrUpdate(name, calculatedValue);
+        this.AddOrUpdateCache(name, calculatedValue);
         return calculatedValue;
       }
+      finally
+      {
+        mutex.ReleaseMutex();
+      } 
     }
 
     public T GetValue(string filePath, bool validate = true)
@@ -61,17 +74,16 @@ namespace Rainbow.Storage.AzureBlob
       if (!validate || (DateTime.Now - fsCacheEntry.Added).TotalMilliseconds < 1000.0)
         return fsCacheEntry.Entry;
       
-      var fileInfo = new FileInfo(filePath);
-      if (!fileInfo.Exists || fileInfo.LastWriteTime != fsCacheEntry.LastModified)
-        return default (T);
+      // ToDo: check if exists or modified
+      //if (!fileInfo.Exists || fileInfo.LastWriteTime != fsCacheEntry.LastModified)
+      //  return default (T);
       
       return fsCacheEntry.Entry;
     }
 
     public bool Remove(string key)
     {
-      AzureBlobCacheEntry<T> azureBlobCacheEntry;
-      return this._cache.TryRemove(key, out azureBlobCacheEntry);
+      return this._cache.TryRemove(key, out AzureBlobCacheEntry<T> _);
     }
 
     public void Clear()
@@ -79,19 +91,20 @@ namespace Rainbow.Storage.AzureBlob
       this._cache.Clear();
     }
 
-    private void AddOrUpdate(FileInfo file, T value)
+    private void AddOrUpdateCache(string filePath, T value)
     {
-      if (!this.Enabled || !file.Exists)
+      if (!this.Enabled || !this.azureManager.FileExists(filePath))
         return;
       
-      var fsCacheEntry = new AzureBlobCacheEntry<T>()
+      var fsCacheEntry = new AzureBlobCacheEntry<T>
       {
         Added = DateTime.Now,
-        LastModified = file.LastWriteTime,
+        // ToDo: implement modified time
+        ////LastModified = file.LastWriteTime,
         Entry = value
       };
       
-      this._cache[file.FullName] = fsCacheEntry;
+      this._cache[filePath] = fsCacheEntry;
     }
 
     private class AzureBlobCacheEntry<TEntry>
@@ -100,7 +113,7 @@ namespace Rainbow.Storage.AzureBlob
 
       public DateTime Added { get; set; }
 
-      public DateTime LastModified { get; set; }
+      ////public DateTime LastModified { get; set; }
     }
   }
 }

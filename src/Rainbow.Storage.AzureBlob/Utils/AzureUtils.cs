@@ -1,15 +1,7 @@
-namespace Rainbow.Storage.AzureBlob.Provider
+namespace Rainbow.Storage.AzureBlob.Utils
 {
-    public class AzureUtils
+    public static class AzureUtils
     {
-        private static object blobsLock = new object();
-
-        public static object GetBlobLock(string blobName)
-        {
-            // ToDo: decide if the separate sync required
-            return AzureUtils.blobsLock;
-        }
-        
         public static string DirectoryPathToPrefix(string path)
         {
             return AzureUtils.Sanitize($"{path.TrimEnd('/')}/");

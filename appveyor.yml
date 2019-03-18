@@ -14,7 +14,7 @@ environment:
     secure: WeJ3YXH1zCYyLkG1zudl5oso4LP/7SEV/fWUm0Op4M1P+8aK8OJECmN3g3anASwp2glqVnXSYVAEKpefFLr3/ZswrDHMJvZAUhkHSxKebH+kXl6C2Mip4/WI4KoULNrrvzXIwYE+k5ofJwDLeh6tIVOW6TZznsBEP7Yqv5GNgQEGpOkijMlzgUw6qOEOYdtVAdM/pdcJWCQNzNhNlnm+5dGPYR/qgFS3hHHvndxDKNQfd76Llv+3BPBTKOrtDlpN
 
 cache:
-  - packages -> **\packages.config
+  - src\packages -> **\packages.config
 before_build:
 - cmd: nuget restore src
 build:

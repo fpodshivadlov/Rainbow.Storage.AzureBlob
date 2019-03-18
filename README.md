@@ -20,6 +20,7 @@ The config patch file example.
     connectionString="<AZURE_BLOB_STORAGE_CONNECTION_STRING>"
     type="Rainbow.Storage.AzureBlob.SerializationBlobStorageDataStore, Rainbow.Storage.AzureBlob"
     useDataCache="false"
+    useBlobListCache="false"
     singleInstance="true"
     patch:instead="targetDataStore[@type='Rainbow.Storage.SerializationFileSystemDataStore, Rainbow']"
   />
