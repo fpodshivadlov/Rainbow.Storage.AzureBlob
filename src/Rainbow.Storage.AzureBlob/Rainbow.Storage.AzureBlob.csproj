@@ -65,6 +65,7 @@
     <ItemGroup>
         <Compile Include="AzureBlobCache.cs" />
         <Compile Include="Manager\AzureManager.cs" />
+        <Compile Include="Manager\IAzureManager.cs" />
         <Compile Include="Provider\AzureProvider.cs" />
         <Compile Include="Provider\CachedAzureProvider.cs" />
         <Compile Include="Provider\IAzureProvider.cs" />

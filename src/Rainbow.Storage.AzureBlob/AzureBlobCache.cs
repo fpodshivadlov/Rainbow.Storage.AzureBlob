@@ -14,9 +14,9 @@ namespace Rainbow.Storage.AzureBlob
       new ConcurrentDictionary<string, AzureBlobCacheEntry<T>>(StringComparer.OrdinalIgnoreCase);
     private ConcurrentSet<string> processingFileNames = new ConcurrentSet<string>();
 
-    private readonly AzureManager azureManager;
+    private readonly IAzureManager azureManager;
     
-    public AzureBlobCache(AzureManager azureManager, bool enabled)
+    public AzureBlobCache(IAzureManager azureManager, bool enabled)
     {
       Assert.ArgumentNotNull(azureManager, nameof(azureManager));
       

@@ -11,7 +11,7 @@ using Sitecore.Diagnostics;
 
 namespace Rainbow.Storage.AzureBlob.Manager
 {
-    public class AzureManager
+    public class AzureManager : IAzureManager
     {
         private readonly CloudBlobContainer cloudBlobContainer;
         private readonly IAzureProvider azureProvider;
