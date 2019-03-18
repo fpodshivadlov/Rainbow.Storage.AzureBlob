@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.WindowsAzure.Storage.Blob;
+using Sitecore.Diagnostics;
 
 namespace Rainbow.Storage.AzureBlob.Provider
-{
+{   
     public class CachedAzureProvider : IAzureProvider
     {
         private readonly IDictionary<string, IListBlobItem> blobsItemsCache = new ConcurrentDictionary<string, IListBlobItem>();
         private readonly CloudBlobContainer cloudBlobContainer;
 
+        // ToDo: pass root prefix to reduce number of items
         public CachedAzureProvider(CloudBlobContainer cloudBlobContainer)
         {
             this.cloudBlobContainer = cloudBlobContainer;
@@ -51,10 +53,13 @@ namespace Rainbow.Storage.AzureBlob.Provider
                 {
                     if (!this.blobsItemsCache.Any())
                     {
-                        foreach (CloudBlockBlob blob in  this.GetAllBlobs())
+                        Log.Info($"AZURE BLOB STORAGE. Creating cache (container={this.cloudBlobContainer.Name}).", this);
+                        foreach (CloudBlockBlob blob in this.GetAllBlobs())
                         {
                             this.blobsItemsCache[blob.Name] = blob;
                         }
+                        
+                        Log.Info($"AZURE BLOB STORAGE. Cached created. Total nodes: {this.blobsItemsCache.Keys.Count} (container={this.cloudBlobContainer.Name}).", this);
                     }
                 }
             }
