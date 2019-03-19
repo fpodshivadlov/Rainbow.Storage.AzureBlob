@@ -115,7 +115,7 @@ namespace Rainbow.Storage.AzureBlob
         {
             Assert.ArgumentNotNullOrEmpty(globalPath, nameof(globalPath));
 
-            return (this.GetPhysicalFilePathsForVirtualPath(this.ConvertGlobalVirtualPathToTreeVirtualPath(globalPath)))
+            return this.GetPhysicalFilePathsForVirtualPath(this.ConvertGlobalVirtualPathToTreeVirtualPath(globalPath))
                 .Select(this.ReadItem)
                 .Where(item =>
                 {
@@ -164,12 +164,14 @@ namespace Rainbow.Storage.AzureBlob
                         IItemData itemData = this._formatter.ReadSerializedItem(stream, filePath);
                         itemData.DatabaseName = this.DatabaseName;
                         this.AddToMetadataCache(itemData);
+                        Log.Info($"AZURE BLOB STORAGE: reading {filePath} data. Stopped at position {stream?.Position}", this);
+                        
                         return itemData;
                     }
                 }
                 catch (Exception ex)
                 {
-                    throw new SfsReadException($"Error while reading SFS item {filePath}", ex);
+                    throw new SfsReadException($"AZURE BLOB STORAGE: Error while reading SFS item {filePath}", ex);
                 }
             });
 
@@ -191,12 +193,14 @@ namespace Rainbow.Storage.AzureBlob
                     {
                         IItemMetadata itemMetadata = this._formatter.ReadSerializedItemMetadata(stream, filePath);
                         this._idCache[itemMetadata.Id] = itemMetadata;
+                        Log.Info($"AZURE BLOB STORAGE: reading {filePath} metadata. Stopped at position {stream?.Position}", this);
+                        
                         return itemMetadata;
                     }
                 }
                 catch (Exception ex)
                 {
-                    throw new SfsReadException($"Error while reading SFS metadata {filePath}", ex);
+                    throw new SfsReadException($"AZURE BLOB STORAGE: Error while reading SFS metadata {filePath}", ex);
                 }
             });
         }
@@ -207,8 +211,9 @@ namespace Rainbow.Storage.AzureBlob
 
             if (!globalPath.StartsWith(this._globalRootItemPath, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException(
-                    $"The global path {globalPath} was not rooted under the local item root path {this._globalRootItemPath}. " +
-                    $"This means you tried to put an item where it didn't belong.");
+                    $"AZURE BLOB STORAGE: The global path {globalPath} was not rooted " +
+                    $"under the local item root path {this._globalRootItemPath}. " +
+                    "This means you tried to put an item where it didn't belong.");
 
             int startIndex = this._globalRootItemPath.LastIndexOf('/');
             return globalPath.Substring(startIndex);

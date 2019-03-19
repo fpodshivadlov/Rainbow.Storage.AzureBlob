@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -26,7 +27,7 @@ namespace Rainbow.Storage.AzureBlob.Provider
             {
                 string name = itemKeyValue.Key;
                 
-                if (!string.IsNullOrEmpty(prefix) && !name.StartsWith(prefix))
+                if (!string.IsNullOrEmpty(prefix) && !name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     continue;
 
                 string relativePath = string.IsNullOrEmpty(prefix) ? name : name.Substring(prefix.Length);
@@ -42,8 +43,9 @@ namespace Rainbow.Storage.AzureBlob.Provider
             this.EnsureCache();
 
             return this.blobsItemsCache
-                .Any(item => string.Equals(item.Key, blobName) && item.Value is CloudBlockBlob);
-        }        
+                .Any(item => string.Equals(item.Key, blobName, StringComparison.OrdinalIgnoreCase) 
+                             && item.Value is CloudBlockBlob);
+        }
 
         private void EnsureCache()
         {
