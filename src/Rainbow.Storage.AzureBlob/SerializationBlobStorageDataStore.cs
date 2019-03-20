@@ -14,10 +14,11 @@ namespace Rainbow.Storage.AzureBlob
 	{
 		private readonly string CloudRootPath;
 		private readonly bool _useDataCache;
+		private readonly bool _useBlobListCache;
 		private readonly ITreeRootFactory _rootFactory;
 		private readonly IList<SerializationBlobStorageTree> Trees;
 		private readonly ISerializationFormatter _formatter;
-		private readonly AzureManager azureManager;
+		private readonly string _connectionString;
 		private readonly string _containerName;
 
 		public SerializationBlobStorageDataStore(
@@ -33,9 +34,11 @@ namespace Rainbow.Storage.AzureBlob
 			Assert.ArgumentNotNull(formatter, nameof(formatter));
 			Assert.ArgumentNotNull(rootFactory, nameof(rootFactory));
 
-			this.azureManager = new AzureManager(connectionString, containerName, useBlobListCache);
+			this._useBlobListCache = useBlobListCache;
+			this._connectionString = connectionString; 
 			this._containerName = containerName;
 			this._useDataCache = useDataCache;
+			this._useBlobListCache = useBlobListCache;
 			this._rootFactory = rootFactory;
 			this._formatter = formatter;
 			this._formatter.ParentDataStore = this;
@@ -44,7 +47,7 @@ namespace Rainbow.Storage.AzureBlob
 			this.CloudRootPath = this.InitializeRootPath(cloudRootPath);
 
 			// ReSharper disable once DoNotCallOverridableMethodsInConstructor
-			this.Trees = this.InitializeTrees(this._formatter, useDataCache);
+			this.Trees = this.InitializeTrees(this._formatter, useDataCache, useBlobListCache);
 		}
 
 		public virtual IEnumerable<IItemData> GetSnapshot()
@@ -174,21 +177,21 @@ namespace Rainbow.Storage.AzureBlob
 		// note: we pass in these params (formatter, datacache)
 		// so that overriding classes may get access to private vars indirectly
 		// (can't get at them otherwise because this is called from the constructor)
-		protected virtual List<SerializationBlobStorageTree> InitializeTrees(ISerializationFormatter formatter, bool useDataCache)
+		protected virtual List<SerializationBlobStorageTree> InitializeTrees(ISerializationFormatter formatter, bool useDataCache, bool useBlobListCache)
 		{
 			var result = new List<SerializationBlobStorageTree>();
 			IEnumerable<TreeRoot> roots = this._rootFactory.CreateTreeRoots();
 
 			foreach (TreeRoot root in roots)
 			{
-				result.Add(this.CreateTree(root, formatter, useDataCache));
+				result.Add(this.CreateTree(root, formatter, useDataCache, useBlobListCache));
 			}
 
 			return result;
 		}
 
 		// note: we pass in these params (formatter, datacache) so that overriding classes may get access to private vars indirectly (can't get at them otherwise because this is called from the constructor)
-		protected virtual SerializationBlobStorageTree CreateTree(TreeRoot root, ISerializationFormatter formatter, bool useDataCache)
+		protected virtual SerializationBlobStorageTree CreateTree(TreeRoot root, ISerializationFormatter formatter, bool useDataCache, bool useBlobListCache)
 		{
 			var tree = new SerializationBlobStorageTree(
 				root.Name, 
@@ -196,8 +199,10 @@ namespace Rainbow.Storage.AzureBlob
 				root.DatabaseName,
 				Path.Combine(this.CloudRootPath, root.Name),
 				formatter,
+				this._connectionString,
+				this._containerName,
 				useDataCache,
-				this.azureManager);
+				useBlobListCache);
 
 			return tree;
 		}
