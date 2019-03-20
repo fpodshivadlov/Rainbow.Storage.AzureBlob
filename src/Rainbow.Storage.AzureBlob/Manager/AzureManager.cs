@@ -16,7 +16,8 @@ namespace Rainbow.Storage.AzureBlob.Manager
         private readonly CloudBlobContainer cloudBlobContainer;
         private readonly IAzureProvider azureProvider;
 
-        public AzureManager(string storageConnectionString, string containerName, bool useBlobListCache)
+        public AzureManager(string storageConnectionString, string containerName,
+            string physicalRootPath, bool useBlobListCache)
         {
             Assert.ArgumentNotNullOrEmpty(storageConnectionString, nameof(storageConnectionString));
 
@@ -34,7 +35,7 @@ namespace Rainbow.Storage.AzureBlob.Manager
 
             this.cloudBlobContainer = cloudBlobContainer;
             this.azureProvider = useBlobListCache
-                ? (IAzureProvider) new CachedAzureProvider(cloudBlobContainer)
+                ? (IAzureProvider) new CachedAzureProvider(cloudBlobContainer, physicalRootPath)
                 : new AzureProvider(cloudBlobContainer);
         }
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.WindowsAzure.Storage.Blob;
+using Rainbow.Storage.AzureBlob.Utils;
 using Sitecore.Diagnostics;
 
 namespace Rainbow.Storage.AzureBlob.Provider
@@ -12,11 +13,13 @@ namespace Rainbow.Storage.AzureBlob.Provider
     {
         private readonly IDictionary<string, IListBlobItem> blobsItemsCache = new ConcurrentDictionary<string, IListBlobItem>();
         private readonly CloudBlobContainer cloudBlobContainer;
+        private readonly string physicalRootPath;
 
         // ToDo: pass root prefix to reduce number of items
-        public CachedAzureProvider(CloudBlobContainer cloudBlobContainer)
+        public CachedAzureProvider(CloudBlobContainer cloudBlobContainer, string physicalRootPath)
         {
             this.cloudBlobContainer = cloudBlobContainer;
+            this.physicalRootPath = physicalRootPath;
         }
         
         public IEnumerable<IListBlobItem> EnumerateBlobs(string prefix, SearchOption searchOption, int? maxResultsPerTime = null)
@@ -68,12 +71,14 @@ namespace Rainbow.Storage.AzureBlob.Provider
         }
         
         private IEnumerable<CloudBlockBlob> GetAllBlobs()
-        {        
+        {
+            string prefix = AzureUtils.DirectoryPathToPrefix(this.physicalRootPath);
+            
             BlobContinuationToken blobContinuationToken = null;
             do
             {
                 BlobResultSegment results = this.cloudBlobContainer.ListBlobsSegmented(
-                    null,
+                    prefix,
                     true,
                     BlobListingDetails.None,
                     null,

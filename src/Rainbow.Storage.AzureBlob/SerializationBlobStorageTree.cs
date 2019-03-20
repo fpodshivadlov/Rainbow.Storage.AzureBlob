@@ -30,7 +30,7 @@ namespace Rainbow.Storage.AzureBlob
         private readonly string _globalRootItemPath;
         private readonly string _physicalRootPath;
         private readonly ISerializationFormatter _formatter;
-        private readonly AzureManager azureManager;
+        private readonly AzureManager _azureManager;
         private readonly AzureBlobCache<IItemData> _dataCache;
         private bool _configuredForFastReads;
         private int? _maxRelativePathLength;
@@ -42,14 +42,15 @@ namespace Rainbow.Storage.AzureBlob
             string databaseName,
             string physicalRootPath,
             ISerializationFormatter formatter,
+            string connectionString,
+            string containerName,
             bool useDataCache,
-            AzureManager azureManager)
+            bool useBlobListCache)
         {
             Assert.ArgumentNotNullOrEmpty(globalRootItemPath, nameof(globalRootItemPath));
             Assert.ArgumentNotNullOrEmpty(databaseName, nameof(databaseName));
             Assert.ArgumentNotNullOrEmpty(physicalRootPath, nameof(physicalRootPath));
             Assert.ArgumentNotNull(formatter, nameof(formatter));
-            Assert.ArgumentNotNull(azureManager, nameof(azureManager));
             Assert.IsTrue(globalRootItemPath.StartsWith("/"),
                 "The global root item path must start with '/', e.g. '/sitecore' or '/sitecore/content'");
             Assert.IsTrue(globalRootItemPath.Length > 1,
@@ -59,15 +60,15 @@ namespace Rainbow.Storage.AzureBlob
 
             this.AssertValidPhysicalPath(physicalRootPath);
             this._physicalRootPath = physicalRootPath;
-            this.azureManager = azureManager;
+            this._azureManager = new AzureManager(connectionString, containerName, physicalRootPath, useBlobListCache);
             this._formatter = formatter;
-            this._dataCache = new AzureBlobCache<IItemData>(azureManager, useDataCache);
-            this._metadataCache = new AzureBlobCache<IItemMetadata>(azureManager, true);
+            this._dataCache = new AzureBlobCache<IItemData>(this._azureManager, useDataCache);
+            this._metadataCache = new AzureBlobCache<IItemMetadata>(this._azureManager, true);
             
             this.Name = name;
             this.DatabaseName = databaseName;
 
-            this.azureManager.EnsureDirectory(this._physicalRootPath);
+            this._azureManager.EnsureDirectory(this._physicalRootPath);
         }
 
         public string DatabaseName { get; }
@@ -80,7 +81,7 @@ namespace Rainbow.Storage.AzureBlob
 
         public IEnumerable<IItemData> GetSnapshot()
         {
-            return this.azureManager
+            return this._azureManager
                 .EnumerateFiles(this._physicalRootPath, this._formatter.FileExtension, SearchOption.AllDirectories)
                 .Select(this.ReadItem);
         }
@@ -95,7 +96,7 @@ namespace Rainbow.Storage.AzureBlob
 
         public IItemData GetRootItem()
         {
-            string[] files = this.azureManager
+            string[] files = this._azureManager
                 .EnumerateFiles(this._physicalRootPath, this._formatter.FileExtension, SearchOption.TopDirectoryOnly)
                 .ToArray();
 
@@ -159,7 +160,7 @@ namespace Rainbow.Storage.AzureBlob
             {
                 try
                 {
-                    using (Stream stream = this.azureManager.GetFileStream(name))
+                    using (Stream stream = this._azureManager.GetFileStream(name))
                     {
                         IItemData itemData = this._formatter.ReadSerializedItem(stream, filePath);
                         itemData.DatabaseName = this.DatabaseName;
@@ -189,7 +190,7 @@ namespace Rainbow.Storage.AzureBlob
             {
                 try
                 {
-                    using (Stream stream = this.azureManager.GetFileStream(filePath))
+                    using (Stream stream = this._azureManager.GetFileStream(filePath))
                     {
                         IItemMetadata itemMetadata = this._formatter.ReadSerializedItemMetadata(stream, filePath);
                         this._idCache[itemMetadata.Id] = itemMetadata;
@@ -241,7 +242,7 @@ namespace Rainbow.Storage.AzureBlob
 
                 foreach (string path in startingParentPathsArray)
                 {
-                    if (this.azureManager.FileExists(path))
+                    if (this._azureManager.FileExists(path))
                     {
                         parentPaths.AddRange(this.GetChildPaths(this.ReadItemMetadata(path))
                             .Where(childPath => (Path.GetFileName(childPath) ?? "")
@@ -264,18 +265,18 @@ namespace Rainbow.Storage.AzureBlob
             IEnumerable<string> childPaths = Enumerable.Empty<string>();
             string childrenPath = Path.ChangeExtension(serializedItem.SerializedItemId, null);
 
-            if (this.azureManager.DirectoryExists(childrenPath))
+            if (this._azureManager.DirectoryExists(childrenPath))
             {
-                childPaths = this.azureManager.EnumerateFiles(
+                childPaths = this._azureManager.EnumerateFiles(
                     childrenPath,
                     this._formatter.FileExtension,
                     SearchOption.TopDirectoryOnly);
             }
 
             string guidBasedPath = Path.Combine(this._physicalRootPath, item.Id.ToString());
-            if (this.azureManager.DirectoryExists(guidBasedPath))
+            if (this._azureManager.DirectoryExists(guidBasedPath))
             {
-                childPaths = childPaths.Concat(this.azureManager.EnumerateFiles(
+                childPaths = childPaths.Concat(this._azureManager.EnumerateFiles(
                     guidBasedPath, 
                     this._formatter.FileExtension, 
                     SearchOption.TopDirectoryOnly));
@@ -459,7 +460,7 @@ namespace Rainbow.Storage.AzureBlob
         private IItemMetadata GetFromMetadataCache(Guid itemId)
         {
             if (this._idCache.TryGetValue(itemId, out IItemMetadata itemMetadata) &&
-                this.azureManager.FileExists(itemMetadata.SerializedItemId))
+                this._azureManager.FileExists(itemMetadata.SerializedItemId))
                 return itemMetadata;
 
             return null;

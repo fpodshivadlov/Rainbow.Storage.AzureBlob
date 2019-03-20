@@ -31,7 +31,7 @@ namespace Rainbow.Storage.AzureBlob.Tests.Manager
             string connectionString = ConfigHelpers.GetConnectionString();
             string containerName = ConfigHelpers.GetContainerName();
             
-            this.azureManager = new AzureManager(connectionString, containerName, useBlobListCache);
+            this.azureManager = new AzureManager(connectionString, containerName, "/Testing", useBlobListCache);
         }
 
         [Fact]
@@ -40,7 +40,7 @@ namespace Rainbow.Storage.AzureBlob.Tests.Manager
             string connectionString = ConfigHelpers.GetConnectionString();
             
             Assert.ThrowsAny<Exception>(
-                () => new AzureManager(connectionString, "notexist", false));
+                () => new AzureManager(connectionString, "notexist", null, false));
         }
         
         [Fact]
