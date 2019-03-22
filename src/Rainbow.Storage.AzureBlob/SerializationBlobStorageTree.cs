@@ -9,7 +9,6 @@ using Rainbow.Formatting;
 using Rainbow.Model;
 using Rainbow.Settings;
 using Rainbow.Storage.AzureBlob.Manager;
-using Rainbow.Storage.AzureBlob.Provider;
 using Sitecore.Common;
 using Sitecore.Diagnostics;
 using Sitecore.StringExtensions;
@@ -18,6 +17,9 @@ namespace Rainbow.Storage.AzureBlob
 {
     public sealed class SerializationBlobStorageTree : IDisposable
     {
+        // ToDo: move to settings if it is useful
+        private static readonly int DegreeOfParallelism = Math.Min(4, Environment.ProcessorCount);
+
         private static readonly HashSet<string> InvalidFileNames =
             new HashSet<string>(RainbowSettings.Current.SfsInvalidFilenames, StringComparer.OrdinalIgnoreCase);
         private readonly char[] _invalidFileNameCharacters = Path.GetInvalidFileNameChars()
@@ -142,14 +144,14 @@ namespace Rainbow.Storage.AzureBlob
         {
             Assert.ArgumentNotNull(parentItem, nameof(parentItem));
 
-            return this.GetChildPaths(parentItem).AsParallel().Select(this.ReadItem);
+            return this.GetChildPaths(parentItem).AsParallel().WithDegreeOfParallelism(DegreeOfParallelism).Select(this.ReadItem);
         }
 
         public IEnumerable<IItemMetadata> GetChildrenMetadata(IItemMetadata parentItem)
         {
             Assert.ArgumentNotNull(parentItem, nameof(parentItem));
 
-            return this.GetChildPaths(parentItem).AsParallel().Select(this.ReadItemMetadata);
+            return this.GetChildPaths(parentItem).AsParallel().WithDegreeOfParallelism(DegreeOfParallelism).Select(this.ReadItemMetadata);
         }
 
         private IItemData ReadItem(string filePath)
