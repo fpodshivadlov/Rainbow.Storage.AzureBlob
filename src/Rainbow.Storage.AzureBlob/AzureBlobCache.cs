@@ -103,7 +103,7 @@ namespace Rainbow.Storage.AzureBlob
       };
       
       this._cache[filePath] = fsCacheEntry;
-      Log.Info($"[Rainbow] [AzureBlob] Metadata size: {this._cache.Count}", this);
+      Log.Debug($"[Rainbow] [AzureBlob] Metadata cache item count: {this._cache.Count}", this);
     }
 
     private class AzureBlobCacheEntry<TEntry>

@@ -81,6 +81,12 @@ namespace Rainbow.Storage.AzureBlob.Tests.DataStore
             
                 Assert.NotNull(items);
                 Assert.Equal(2, items.Count());
+
+                IItemData rootItem = Assert.Single(items, x => x.Name == "Root");
+                Assert.Equal(1, rootItem.Versions.First().Fields.Count());
+                IItemFieldValue enCreatedField = rootItem.Versions.FirstOrDefault()?.Fields.FirstOrDefault(x =>
+                    x.FieldId == Guid.Parse("25bed78c-4957-4165-998a-ca1b52f67497"));
+                Assert.NotNull(enCreatedField?.Value);
             }
         }
         

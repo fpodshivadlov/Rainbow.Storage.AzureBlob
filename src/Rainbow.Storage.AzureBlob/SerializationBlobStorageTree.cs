@@ -9,6 +9,7 @@ using Rainbow.Formatting;
 using Rainbow.Model;
 using Rainbow.Settings;
 using Rainbow.Storage.AzureBlob.Manager;
+using Rainbow.Storage.AzureBlob.Model;
 using Sitecore.Common;
 using Sitecore.Diagnostics;
 using Sitecore.StringExtensions;
@@ -30,7 +31,7 @@ namespace Rainbow.Storage.AzureBlob
         private readonly string _globalRootItemPath;
         private readonly string _physicalRootPath;
         private readonly ISerializationFormatter _formatter;
-        private readonly AzureManager _azureManager;
+        private readonly IAzureManager _azureManager;
         private bool _configuredForFastReads;
         private int? _maxRelativePathLength;
         private int? _maxItemNameLength;
@@ -165,10 +166,13 @@ namespace Rainbow.Storage.AzureBlob
                 {
                     using (Stream stream = this._azureManager.GetFileStream(fileInfoPath))
                     {
-                        IItemData itemData = this._formatter.ReadSerializedItem(stream, fileInfoPath);
+                        IItemMetadata itemMetadata = this._formatter.ReadSerializedItemMetadata(stream, fileInfoPath);
+
+                        IItemData itemData = new AzureLazyItemData(itemMetadata, fileInfoPath, this._azureManager, this._formatter);
+
                         itemData.DatabaseName = this.DatabaseName;
                         this.AddToMetadataCache(itemData);
-                        Log.Info($"[Rainbow] [AzureBlob] reading {fileInfoPath} data. Stopped at position {stream?.Position}", this);
+                        Log.Info($"[Rainbow] [AzureBlob] reading {fileInfoPath} metadata (add lazy loading for item data). Stopped at position {stream?.Position}", this);
                         
                         return itemData;
                     }

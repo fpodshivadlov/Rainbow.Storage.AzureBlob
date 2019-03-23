@@ -58,13 +58,15 @@ namespace Rainbow.Storage.AzureBlob.Provider
                 {
                     if (!this.blobsItemsCache.Any())
                     {
-                        Log.Info($"AZURE BLOB STORAGE. Creating cache (container={this.cloudBlobContainer.Name}).", this);
+                        string prefix = AzureUtils.DirectoryPathToPrefix(this.physicalRootPath);
+                        Log.Info($"AZURE BLOB STORAGE. Creating cache (container={this.cloudBlobContainer.Name}, root={prefix}).", this);
+                        
                         foreach (CloudBlockBlob blob in this.GetAllBlobs())
                         {
                             this.blobsItemsCache[blob.Name] = blob;
                         }
                         
-                        Log.Info($"AZURE BLOB STORAGE. Cached created. Total nodes: {this.blobsItemsCache.Keys.Count} (container={this.cloudBlobContainer.Name}).", this);
+                        Log.Info($"AZURE BLOB STORAGE. Cached created. Total nodes: {this.blobsItemsCache.Keys.Count} (container={this.cloudBlobContainer.Name}, root={prefix}).", this);
                     }
                 }
             }
