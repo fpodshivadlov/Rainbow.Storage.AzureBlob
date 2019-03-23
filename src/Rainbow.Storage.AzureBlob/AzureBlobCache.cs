@@ -12,7 +12,6 @@ namespace Rainbow.Storage.AzureBlob
   {
     private readonly ConcurrentDictionary<string, AzureBlobCacheEntry<T>> _cache = 
       new ConcurrentDictionary<string, AzureBlobCacheEntry<T>>(StringComparer.OrdinalIgnoreCase);
-    private ConcurrentSet<string> processingFileNames = new ConcurrentSet<string>();
 
     private readonly IAzureManager azureManager;
     
@@ -44,7 +43,6 @@ namespace Rainbow.Storage.AzureBlob
         return default (T);
 
       string name = AzureUtils.FilePathToName(filePath);
-
       var mutex = new Mutex(false, $"blob-{name}");
       try
       {
@@ -53,8 +51,8 @@ namespace Rainbow.Storage.AzureBlob
         if (cacheValueAgain != null)
           return cacheValueAgain;
         
-        T calculatedValue = populateFunction(name);
-        this.AddOrUpdateCache(name, calculatedValue);
+        T calculatedValue = populateFunction(filePath);
+        this.AddOrUpdateCache(filePath, calculatedValue);
         return calculatedValue;
       }
       finally
@@ -105,6 +103,7 @@ namespace Rainbow.Storage.AzureBlob
       };
       
       this._cache[filePath] = fsCacheEntry;
+      Log.Info($"[Rainbow] [AzureBlob] Metadata size: {this._cache.Count}", this);
     }
 
     private class AzureBlobCacheEntry<TEntry>

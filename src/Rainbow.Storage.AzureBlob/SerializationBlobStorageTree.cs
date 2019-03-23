@@ -17,9 +17,6 @@ namespace Rainbow.Storage.AzureBlob
 {
     public sealed class SerializationBlobStorageTree : IDisposable
     {
-        // ToDo: move to settings if it is useful
-        private static readonly int DegreeOfParallelism = Math.Min(4, Environment.ProcessorCount);
-
         private static readonly HashSet<string> InvalidFileNames =
             new HashSet<string>(RainbowSettings.Current.SfsInvalidFilenames, StringComparer.OrdinalIgnoreCase);
         private readonly char[] _invalidFileNameCharacters = Path.GetInvalidFileNameChars()
@@ -29,11 +26,11 @@ namespace Rainbow.Storage.AzureBlob
         private readonly object _fastReadConfigurationLock = new object();
         
         private readonly AzureBlobCache<IItemMetadata> _metadataCache;
+        private readonly AzureBlobCache<IItemData> _dataCache;        
         private readonly string _globalRootItemPath;
         private readonly string _physicalRootPath;
         private readonly ISerializationFormatter _formatter;
         private readonly AzureManager _azureManager;
-        private readonly AzureBlobCache<IItemData> _dataCache;
         private bool _configuredForFastReads;
         private int? _maxRelativePathLength;
         private int? _maxItemNameLength;
@@ -144,37 +141,41 @@ namespace Rainbow.Storage.AzureBlob
         {
             Assert.ArgumentNotNull(parentItem, nameof(parentItem));
 
-            return this.GetChildPaths(parentItem).AsParallel().WithDegreeOfParallelism(DegreeOfParallelism).Select(this.ReadItem);
+            return this.GetChildPaths(parentItem)
+                .AsParallel().WithDegreeOfParallelism(Utils.Settings.DegreeOfParallelism)
+                .Select(this.ReadItem);
         }
 
         public IEnumerable<IItemMetadata> GetChildrenMetadata(IItemMetadata parentItem)
         {
             Assert.ArgumentNotNull(parentItem, nameof(parentItem));
 
-            return this.GetChildPaths(parentItem).AsParallel().WithDegreeOfParallelism(DegreeOfParallelism).Select(this.ReadItemMetadata);
+            return this.GetChildPaths(parentItem)
+                .AsParallel().WithDegreeOfParallelism(Utils.Settings.DegreeOfParallelism)
+                .Select(this.ReadItemMetadata);
         }
 
         private IItemData ReadItem(string filePath)
         {
             Assert.ArgumentNotNullOrEmpty(filePath, nameof(filePath));
             
-            IItemData item = this._dataCache.GetValue(filePath, name =>
+            IItemData item = this._dataCache.GetValue(filePath, fileInfoPath =>
             {
                 try
                 {
-                    using (Stream stream = this._azureManager.GetFileStream(name))
+                    using (Stream stream = this._azureManager.GetFileStream(fileInfoPath))
                     {
-                        IItemData itemData = this._formatter.ReadSerializedItem(stream, filePath);
+                        IItemData itemData = this._formatter.ReadSerializedItem(stream, fileInfoPath);
                         itemData.DatabaseName = this.DatabaseName;
                         this.AddToMetadataCache(itemData);
-                        Log.Info($"AZURE BLOB STORAGE: reading {filePath} data. Stopped at position {stream?.Position}", this);
+                        Log.Info($"[Rainbow] [AzureBlob] reading {fileInfoPath} data. Stopped at position {stream?.Position}", this);
                         
                         return itemData;
                     }
                 }
                 catch (Exception ex)
                 {
-                    throw new SfsReadException($"AZURE BLOB STORAGE: Error while reading SFS item {filePath}", ex);
+                    throw new SfsReadException($"[Rainbow] [AzureBlob] Error while reading SFS item {filePath}", ex);
                 }
             });
 
@@ -188,22 +189,22 @@ namespace Rainbow.Storage.AzureBlob
         {
             Assert.ArgumentNotNullOrEmpty(filePath, nameof(filePath));
             
-            return this._metadataCache.GetValue(filePath, fileInfo =>
+            return this._metadataCache.GetValue(filePath, fileInfoPath =>
             {
                 try
                 {
-                    using (Stream stream = this._azureManager.GetFileStream(filePath))
+                    using (Stream stream = this._azureManager.GetFileStream(fileInfoPath))
                     {
-                        IItemMetadata itemMetadata = this._formatter.ReadSerializedItemMetadata(stream, filePath);
+                        IItemMetadata itemMetadata = this._formatter.ReadSerializedItemMetadata(stream, fileInfoPath);
                         this._idCache[itemMetadata.Id] = itemMetadata;
-                        Log.Info($"AZURE BLOB STORAGE: reading {filePath} metadata. Stopped at position {stream?.Position}", this);
+                        Log.Info($"[Rainbow] [AzureBlob] reading {fileInfoPath} metadata. Stopped at position {stream?.Position}", this);
                         
                         return itemMetadata;
                     }
                 }
                 catch (Exception ex)
                 {
-                    throw new SfsReadException($"AZURE BLOB STORAGE: Error while reading SFS metadata {filePath}", ex);
+                    throw new SfsReadException($"[Rainbow] [AzureBlob] Error while reading SFS metadata {filePath}", ex);
                 }
             });
         }
@@ -214,7 +215,7 @@ namespace Rainbow.Storage.AzureBlob
 
             if (!globalPath.StartsWith(this._globalRootItemPath, StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException(
-                    $"AZURE BLOB STORAGE: The global path {globalPath} was not rooted " +
+                    $"[Rainbow] [AzureBlob] The global path {globalPath} was not rooted " +
                     $"under the local item root path {this._globalRootItemPath}. " +
                     "This means you tried to put an item where it didn't belong.");
 

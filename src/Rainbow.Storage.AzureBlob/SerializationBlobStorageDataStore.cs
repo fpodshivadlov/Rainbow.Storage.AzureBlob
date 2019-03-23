@@ -57,12 +57,12 @@ namespace Rainbow.Storage.AzureBlob
 
 		public virtual void Save(IItemData item)
 		{
-			throw new NotImplementedException("Editing is not supported.");
+			throw new NotImplementedException("[Rainbow] [AzureBlob] Save action is not supported.");
 		}
 
 		public virtual void MoveOrRenameItem(IItemData itemWithFinalPath, string oldPath)
 		{
-			throw new NotImplementedException("Changes are not supported.");
+			throw new NotImplementedException("[Rainbow] [AzureBlob] Move/Rename action is not supported.");
 		}
 
 		public virtual IEnumerable<IItemData> GetByPath(string path, string database)
@@ -107,7 +107,7 @@ namespace Rainbow.Storage.AzureBlob
 		{
 			return this.Trees.Select(tree => tree.GetRootItem())
 				.Where(root => root != null)
-				.AsParallel()
+				.AsParallel().WithDegreeOfParallelism(Utils.Settings.DegreeOfParallelism)
 				.SelectMany(tree => this.FilterDescendantsAndSelf(tree, item => item.TemplateId == templateId));
 		}
 
@@ -115,7 +115,8 @@ namespace Rainbow.Storage.AzureBlob
 		{
 			SerializationBlobStorageTree tree = this.GetTreeForPath(parentItem.Path, parentItem.DatabaseName);
 
-			if (tree == null) throw new InvalidOperationException("No trees contained the global path " + parentItem.Path);
+			if (tree == null)
+				throw new InvalidOperationException("No trees contained the global path " + parentItem.Path);
 
 			return tree.GetChildren(parentItem);
 		}
@@ -123,7 +124,7 @@ namespace Rainbow.Storage.AzureBlob
 		public virtual void CheckConsistency(string database, bool fixErrors, Action<string> logMessageReceiver)
 		{
 			// TODO: consistency check
-			throw new NotImplementedException();
+			throw new NotImplementedException("[Rainbow] [AzureBlob] CheckConsistency action is not supported.");
 		}
 
 		public virtual void ResetTemplateEngine()
@@ -134,7 +135,7 @@ namespace Rainbow.Storage.AzureBlob
 		public virtual bool Remove(IItemData item)
 		{
 			// ToDo: changes are not supported.
-			throw new NotImplementedException("Changes are not supported.");
+			throw new NotImplementedException("[Rainbow] [AzureBlob] Remove is not supported.");
 		}
 
 		public virtual void RegisterForChanges(Action<IItemMetadata, string> actionOnChange)
@@ -145,7 +146,7 @@ namespace Rainbow.Storage.AzureBlob
 		public virtual void Clear()
 		{
 			// ToDo: changes are not supported.
-			throw new NotImplementedException("Changes are not supported.");
+			throw new NotImplementedException("[Rainbow] [AzureBlob] Clear action is not supported.");
 		}
 		
 		protected virtual string InitializeRootPath(string rootPath)
@@ -158,8 +159,11 @@ namespace Rainbow.Storage.AzureBlob
 			SerializationBlobStorageTree foundStorageTree = null;
 			foreach (SerializationBlobStorageTree tree in this.Trees)
 			{
-				if (!tree.DatabaseName.Equals(database, StringComparison.OrdinalIgnoreCase)) continue;
-				if (!tree.ContainsPath(path)) continue;
+				if (!tree.DatabaseName.Equals(database, StringComparison.OrdinalIgnoreCase))
+					continue;
+				
+				if (!tree.ContainsPath(path))
+					continue;
 
 				if (foundStorageTree != null)
 				{
