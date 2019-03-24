@@ -14,13 +14,13 @@ namespace Rainbow.Storage.AzureBlob.Tests.DataStore
         public void GetValue()
         {
             var azureManager = Substitute.For<IAzureManager>();
-            azureManager.FileExists(Arg.Any<string>()).Returns(x => x.Arg<string>() == "key");
+            azureManager.FileExists(Arg.Any<string>()).Returns(x => x.Arg<string>() == "some/key");
             
             var cache = new AzureBlobCache<string>(azureManager, true);
-            string result1 = cache.GetValue("key", x => "value");
+            string result1 = cache.GetValue("some/key", x => "value");
             Assert.Equal("value", result1);
             
-            string result2 = cache.GetValue("key", x => "should_not_be");
+            string result2 = cache.GetValue("some/key", x => "should_not_be");
             Assert.Equal("value", result2);
         }
         
@@ -28,11 +28,11 @@ namespace Rainbow.Storage.AzureBlob.Tests.DataStore
         public void AddOrUpdate()
         {
             var azureManager = Substitute.For<IAzureManager>();
-            azureManager.FileExists(Arg.Any<string>()).Returns(x => x.Arg<string>() == "key");
+            azureManager.FileExists(Arg.Any<string>()).Returns(x => x.Arg<string>() == "/some/key");
             
             var cache = new AzureBlobCache<string>(azureManager, true);
-            cache.AddOrUpdate("key", "value");
-            string result2 = cache.GetValue("key", x => "should_not_be");
+            cache.AddOrUpdate("/some/key", "value");
+            string result2 = cache.GetValue("/some/key", x => "should_not_be");
             Assert.Equal("value", result2);
         }
 
@@ -40,12 +40,12 @@ namespace Rainbow.Storage.AzureBlob.Tests.DataStore
         public void GetValue_Multithreads()
         {
             var azureManager = Substitute.For<IAzureManager>();
-            azureManager.FileExists(Arg.Any<string>()).Returns(x => x.Arg<string>() == "key");
+            azureManager.FileExists(Arg.Any<string>()).Returns(x => x.Arg<string>() == "/some/key");
             
             var cache = new AzureBlobCache<string>(azureManager, true);
             var results = new ConcurrentBag<string>();
 
-            void Action(int number) => results.Add(cache.GetValue("key", x => $"value-{number}"));
+            void Action(int number) => results.Add(cache.GetValue("/some/key", x => $"value-{number}"));
 
             var threads = new Thread[10];
             for (var i = 0; i < threads.Length; i++)

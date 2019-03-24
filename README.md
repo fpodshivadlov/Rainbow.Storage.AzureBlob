@@ -21,9 +21,22 @@ The config patch file example.
     type="Rainbow.Storage.AzureBlob.SerializationBlobStorageDataStore, Rainbow.Storage.AzureBlob"
     useDataCache="false"
     useBlobListCache="false"
+    useBigFilesLazyLoad="false"
     singleInstance="true"
     patch:instead="targetDataStore[@type='Rainbow.Storage.SerializationFileSystemDataStore, Rainbow']"
   />
 
 </configuration>
 ```
+
+#### Parameters
+
+- `useDataCache="false"` - default Rainbow configuration.
+
+- `useBlobListCache="true"` initialize the full list of file to memory and doesn't update the file list.
+It makes sense to use if you need to sync many items.
+
+- `useBigFilesLazyLoad="true"` do lazy loading of items to reduce usage of memory.
+It makes sense to use in case if:
+1) you upload big size items.
+2) you have a lot of dependencies (Unicorn uses the mechanism of retrying keeping the data in memory).

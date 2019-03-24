@@ -15,16 +15,18 @@ namespace Rainbow.Storage.AzureBlob
 		private readonly string CloudRootPath;
 		private readonly bool _useDataCache;
 		private readonly bool _useBlobListCache;
+		private readonly bool _useBigFilesLazyLoad;
 		private readonly ITreeRootFactory _rootFactory;
 		private readonly IList<SerializationBlobStorageTree> Trees;
 		private readonly ISerializationFormatter _formatter;
 		private readonly string _connectionString;
 		private readonly string _containerName;
-
+		
 		public SerializationBlobStorageDataStore(
 			string cloudRootPath,
 			bool useDataCache,
 			bool useBlobListCache,
+			bool useBigFilesLazyLoad,
 			string connectionString,
 			string containerName,
 			ITreeRootFactory rootFactory,
@@ -34,11 +36,11 @@ namespace Rainbow.Storage.AzureBlob
 			Assert.ArgumentNotNull(formatter, nameof(formatter));
 			Assert.ArgumentNotNull(rootFactory, nameof(rootFactory));
 
-			this._useBlobListCache = useBlobListCache;
 			this._connectionString = connectionString; 
 			this._containerName = containerName;
 			this._useDataCache = useDataCache;
 			this._useBlobListCache = useBlobListCache;
+			this._useBigFilesLazyLoad = useBigFilesLazyLoad;
 			this._rootFactory = rootFactory;
 			this._formatter = formatter;
 			this._formatter.ParentDataStore = this;
@@ -47,7 +49,7 @@ namespace Rainbow.Storage.AzureBlob
 			this.CloudRootPath = this.InitializeRootPath(cloudRootPath);
 
 			// ReSharper disable once DoNotCallOverridableMethodsInConstructor
-			this.Trees = this.InitializeTrees(this._formatter, useDataCache, useBlobListCache);
+			this.Trees = this.InitializeTrees(this._formatter, useDataCache, useBlobListCache, useBigFilesLazyLoad);
 		}
 
 		public virtual IEnumerable<IItemData> GetSnapshot()
@@ -57,12 +59,12 @@ namespace Rainbow.Storage.AzureBlob
 
 		public virtual void Save(IItemData item)
 		{
-			throw new NotImplementedException("Editing is not supported.");
+			throw new NotImplementedException("[Rainbow] [AzureBlob] Save action is not supported.");
 		}
 
 		public virtual void MoveOrRenameItem(IItemData itemWithFinalPath, string oldPath)
 		{
-			throw new NotImplementedException("Changes are not supported.");
+			throw new NotImplementedException("[Rainbow] [AzureBlob] Move/Rename action is not supported.");
 		}
 
 		public virtual IEnumerable<IItemData> GetByPath(string path, string database)
@@ -107,15 +109,15 @@ namespace Rainbow.Storage.AzureBlob
 		{
 			return this.Trees.Select(tree => tree.GetRootItem())
 				.Where(root => root != null)
-				.AsParallel()
+				.AsParallel().WithDegreeOfParallelism(Utils.Settings.DegreeOfParallelism)
 				.SelectMany(tree => this.FilterDescendantsAndSelf(tree, item => item.TemplateId == templateId));
 		}
 
 		public virtual IEnumerable<IItemData> GetChildren(IItemData parentItem)
 		{
 			SerializationBlobStorageTree tree = this.GetTreeForPath(parentItem.Path, parentItem.DatabaseName);
-
-			if (tree == null) throw new InvalidOperationException("No trees contained the global path " + parentItem.Path);
+			if (tree == null)
+				throw new InvalidOperationException("No trees contained the global path " + parentItem.Path);
 
 			return tree.GetChildren(parentItem);
 		}
@@ -123,7 +125,7 @@ namespace Rainbow.Storage.AzureBlob
 		public virtual void CheckConsistency(string database, bool fixErrors, Action<string> logMessageReceiver)
 		{
 			// TODO: consistency check
-			throw new NotImplementedException();
+			throw new NotImplementedException("[Rainbow] [AzureBlob] CheckConsistency action is not supported.");
 		}
 
 		public virtual void ResetTemplateEngine()
@@ -134,7 +136,7 @@ namespace Rainbow.Storage.AzureBlob
 		public virtual bool Remove(IItemData item)
 		{
 			// ToDo: changes are not supported.
-			throw new NotImplementedException("Changes are not supported.");
+			throw new NotImplementedException("[Rainbow] [AzureBlob] Remove is not supported.");
 		}
 
 		public virtual void RegisterForChanges(Action<IItemMetadata, string> actionOnChange)
@@ -145,7 +147,7 @@ namespace Rainbow.Storage.AzureBlob
 		public virtual void Clear()
 		{
 			// ToDo: changes are not supported.
-			throw new NotImplementedException("Changes are not supported.");
+			throw new NotImplementedException("[Rainbow] [AzureBlob] Clear action is not supported.");
 		}
 		
 		protected virtual string InitializeRootPath(string rootPath)
@@ -158,8 +160,11 @@ namespace Rainbow.Storage.AzureBlob
 			SerializationBlobStorageTree foundStorageTree = null;
 			foreach (SerializationBlobStorageTree tree in this.Trees)
 			{
-				if (!tree.DatabaseName.Equals(database, StringComparison.OrdinalIgnoreCase)) continue;
-				if (!tree.ContainsPath(path)) continue;
+				if (!tree.DatabaseName.Equals(database, StringComparison.OrdinalIgnoreCase))
+					continue;
+				
+				if (!tree.ContainsPath(path))
+					continue;
 
 				if (foundStorageTree != null)
 				{
@@ -177,21 +182,22 @@ namespace Rainbow.Storage.AzureBlob
 		// note: we pass in these params (formatter, datacache)
 		// so that overriding classes may get access to private vars indirectly
 		// (can't get at them otherwise because this is called from the constructor)
-		protected virtual List<SerializationBlobStorageTree> InitializeTrees(ISerializationFormatter formatter, bool useDataCache, bool useBlobListCache)
+		protected virtual List<SerializationBlobStorageTree> InitializeTrees(ISerializationFormatter formatter,
+			bool useDataCache, bool useBlobListCache, bool useBigFilesLazyLoad)
 		{
 			var result = new List<SerializationBlobStorageTree>();
 			IEnumerable<TreeRoot> roots = this._rootFactory.CreateTreeRoots();
 
 			foreach (TreeRoot root in roots)
 			{
-				result.Add(this.CreateTree(root, formatter, useDataCache, useBlobListCache));
+				result.Add(this.CreateTree(root, formatter, useDataCache, useBlobListCache, useBigFilesLazyLoad));
 			}
 
 			return result;
 		}
 
 		// note: we pass in these params (formatter, datacache) so that overriding classes may get access to private vars indirectly (can't get at them otherwise because this is called from the constructor)
-		protected virtual SerializationBlobStorageTree CreateTree(TreeRoot root, ISerializationFormatter formatter, bool useDataCache, bool useBlobListCache)
+		protected virtual SerializationBlobStorageTree CreateTree(TreeRoot root, ISerializationFormatter formatter, bool useDataCache, bool useBlobListCache, bool useBigFilesLazyLoad)
 		{
 			var tree = new SerializationBlobStorageTree(
 				root.Name, 
@@ -202,7 +208,8 @@ namespace Rainbow.Storage.AzureBlob
 				this._connectionString,
 				this._containerName,
 				useDataCache,
-				useBlobListCache);
+				useBlobListCache,
+				useBigFilesLazyLoad);
 
 			return tree;
 		}
@@ -247,8 +254,10 @@ namespace Rainbow.Storage.AzureBlob
 				new KeyValuePair<string, string>("Serialization formatter", DocumentationUtility.GetFriendlyName(this._formatter)),
 				new KeyValuePair<string, string>("Cloud root path", this.CloudRootPath),
 				new KeyValuePair<string, string>("Azure BLOB container name", this._containerName), 
+				new KeyValuePair<string, string>("Total internal SFS trees", this.Trees.Count.ToString()),
 				new KeyValuePair<string, string>("Use data cache", this._useDataCache.ToString()), 
-				new KeyValuePair<string, string>("Total internal SFS trees", this.Trees.Count.ToString())
+				new KeyValuePair<string, string>("Use blog list cache", this._useBlobListCache.ToString()), 
+				new KeyValuePair<string, string>("Use big files lazy load", this._useBigFilesLazyLoad.ToString()), 
 			};
 		}
 
