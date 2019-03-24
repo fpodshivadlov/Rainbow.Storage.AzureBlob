@@ -31,6 +31,7 @@ namespace Rainbow.Storage.AzureBlob
         private readonly string _globalRootItemPath;
         private readonly string _physicalRootPath;
         private readonly ISerializationFormatter _formatter;
+        private readonly bool _useBigFilesLazyLoad;
         private readonly IAzureManager _azureManager;
         private bool _configuredForFastReads;
         private int? _maxRelativePathLength;
@@ -45,7 +46,8 @@ namespace Rainbow.Storage.AzureBlob
             string connectionString,
             string containerName,
             bool useDataCache,
-            bool useBlobListCache)
+            bool useBlobListCache,
+            bool useBigFilesLazyLoad)
         {
             Assert.ArgumentNotNullOrEmpty(globalRootItemPath, nameof(globalRootItemPath));
             Assert.ArgumentNotNullOrEmpty(databaseName, nameof(databaseName));
@@ -59,6 +61,7 @@ namespace Rainbow.Storage.AzureBlob
             this._globalRootItemPath = globalRootItemPath.TrimEnd('/');
 
             this.AssertValidPhysicalPath(physicalRootPath);
+            this._useBigFilesLazyLoad = useBigFilesLazyLoad;
             this._physicalRootPath = physicalRootPath;
             this._azureManager = new AzureManager(connectionString, containerName, physicalRootPath, useBlobListCache);
             this._formatter = formatter;
@@ -166,13 +169,21 @@ namespace Rainbow.Storage.AzureBlob
                 {
                     using (Stream stream = this._azureManager.GetFileStream(fileInfoPath))
                     {
-                        IItemMetadata itemMetadata = this._formatter.ReadSerializedItemMetadata(stream, fileInfoPath);
-
-                        IItemData itemData = new AzureLazyItemData(itemMetadata, fileInfoPath, this._azureManager, this._formatter);
-
+                        IItemData itemData;
+                        if (!this._useBigFilesLazyLoad || stream.Length < Utils.Settings.LazyAzureItemThreshold)
+                        {
+                            itemData = this._formatter.ReadSerializedItem(stream, fileInfoPath);
+                        }
+                        else
+                        {
+                            IItemMetadata itemMetadata = this._formatter.ReadSerializedItemMetadata(stream, fileInfoPath);
+                            itemData = new AzureLazyItemData(itemMetadata, fileInfoPath, this._azureManager, this._formatter);
+                        }
+                        
                         itemData.DatabaseName = this.DatabaseName;
+
                         this.AddToMetadataCache(itemData);
-                        Log.Info($"[Rainbow] [AzureBlob] reading {fileInfoPath} metadata (add lazy loading for item data). Stopped at position {stream?.Position}", this);
+                        Log.Info($"[Rainbow] [AzureBlob] reading {fileInfoPath} data / metadata(with lazy loading). Stopped at position {stream?.Position}", this);
                         
                         return itemData;
                     }

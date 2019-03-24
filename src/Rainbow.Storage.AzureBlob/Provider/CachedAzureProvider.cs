@@ -15,7 +15,6 @@ namespace Rainbow.Storage.AzureBlob.Provider
         private readonly CloudBlobContainer cloudBlobContainer;
         private readonly string physicalRootPath;
 
-        // ToDo: pass root prefix to reduce number of items
         public CachedAzureProvider(CloudBlobContainer cloudBlobContainer, string physicalRootPath)
         {
             this.cloudBlobContainer = cloudBlobContainer;

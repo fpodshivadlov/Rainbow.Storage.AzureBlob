@@ -42,7 +42,6 @@ namespace Rainbow.Storage.AzureBlob.Model
             // ToDo: fix it - to do the lazy read, the context is needed to be preserved.
             if (serializationFormatter is YamlSerializationFormatter yamlSerializationFormatter)
             {
-                this.serializationFormatter = yamlSerializationFormatter.Clone();
                 this.parentDataStore = yamlSerializationFormatter.ParentDataStore;
             }
             

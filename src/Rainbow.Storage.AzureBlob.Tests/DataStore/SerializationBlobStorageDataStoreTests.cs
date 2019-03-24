@@ -132,6 +132,7 @@ namespace Rainbow.Storage.AzureBlob.Tests.DataStore
                 "/Testing/media",
                 true,
                 useBlobListCache,
+                false,
                 ConfigHelpers.GetConnectionString(),
                 ConfigHelpers.GetContainerName(),
                 StaticTreeRootFactory.Create(
